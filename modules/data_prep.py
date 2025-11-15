@@ -1,6 +1,7 @@
 
 
 import pandas as pd
+import re
 from math import radians, sin, cos, asin, sqrt, floor, ceil  
 from scipy.spatial.distance import cdist
 import numpy as np 
@@ -100,10 +101,6 @@ def load_and_filter_faults(data: pd.DataFrame) -> pd.DataFrame:
     return features_df, filtered_features, gj
 
 
-
-
-
-
 def find_closest_fault(earthquake_lat, earthquake_lng, faults_df):
     """Find closest fault line to an earthquake"""
     try:
@@ -183,10 +180,6 @@ def calculate_distance_by_m_and_km(features_df: pd.DataFrame, data: pd.DataFrame
 
 
 
-
-
-
-
 def match_faults_to_earthquakes(data: pd.DataFrame, features_df: pd.DataFrame) -> pd.DataFrame:
     
     data['closest_fault_idx'] = data.apply(
@@ -240,3 +233,27 @@ def filter_by_time(df: pd.DataFrame, start=None, end=None) -> pd.DataFrame:
     return df2[mask]
 
 
+def unpack_tuple_for_most_likely_value(data, column_name):
+    def parse_tuple(x):
+        if isinstance(x, (tuple, list)):
+            return x
+
+        if isinstance(x, str):
+
+            nums = re.findall(r"[-+]?\d*\.\d+|\d+", x)
+            if len(nums) == 0:
+                return None
+            return tuple(float(n) for n in nums)
+        
+        return x  
+
+    def extract_first(x):
+        if isinstance(x, (tuple, list)):
+            if len(x) == 0 or all(v is None for v in x):
+                return np.nan
+            return x[0]
+        return x
+
+
+    data[column_name] = data[column_name].apply(parse_tuple).apply(extract_first)
+    return data
