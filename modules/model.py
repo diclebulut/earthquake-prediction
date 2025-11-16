@@ -7,7 +7,7 @@ from xml.etree import ElementTree as ET
 
 
 class EarthquakeAnalyzer:
-    def __init__(self, download_path: str = "./data5"):
+    def __init__(self, download_path: str = "./fault_data"):
         self.download_path = download_path
         if not os.path.exists(download_path):
             os.mkdir(download_path)
@@ -54,7 +54,7 @@ class EarthquakeAnalyzer:
                         f.write(response.content)
                     
                     downloaded_files.append(file_name)
-                    status = "Downloaded" if not os.path.exists(file_name) else "Refreshed"
+                    status = "Downloaded" if is_current_month else "Refreshed"
                     print(f"✓ {status}: {year}-{month:02}")
                     
                 except Exception as e:
