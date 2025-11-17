@@ -307,3 +307,183 @@ def generate_basic_map(data, filtered_features, gj, high_mag_threshold):
     folium.LayerControl().add_to(m)
 
     return m
+
+
+
+import ipywidgets
+from IPython.display import display
+
+def generate_alt_map(data, filtered_features, gj, high_mag_threshold, return_widgets=False):
+    """
+    Build a folium.Map (not displayed) and optionally return widgets for interactive use in a notebook.
+
+    - If return_widgets is False (default) returns a folium.Map object (saveable via map.save(...) or converted to XML/HTML).
+    - If return_widgets is True returns a dict: {'map': folium.Map, 'dropdown': ipywidget.Dropdown, 'out_widget': ipywidgets.Output, 'build_map': callable}
+      so the caller can display widgets in a notebook and still obtain the map later.
+    """
+    faults_features = filtered_features if filtered_features else (gj.get('features', []) if gj else [])
+
+    faults_by_catalog = {}
+    for feat in faults_features:
+        props = feat.get('properties', {}) if isinstance(feat, dict) else {}
+        catalog = props.get('catalog_id') or props.get('id') or props.get('catalogId') or props.get('catalog') or 'unknown'
+        catalog = str(catalog)
+        faults_by_catalog.setdefault(catalog, []).append(feat)
+
+    def build_map(selected_catalog='All'):
+        if not data.empty and 'latitude' in data.columns and 'longitude' in data.columns:
+            center = [data['latitude'].mean(), data['longitude'].mean()]
+        else:
+            center = [39.0, 35.0]
+
+        m = folium.Map(location=center, zoom_start=6, tiles='OpenStreetMap')
+
+        cat_counter = Counter()
+        if 'catalog_id' in data.columns:
+            for val in data['catalog_id'].fillna('').astype(str):
+                if val:
+                    cat_counter[val] += 1
+        if not cat_counter and 'closest_fault_id' in data.columns:
+            for val in data['closest_fault_id'].fillna('').astype(str):
+                if val:
+                    cat_counter[val] += 1
+
+        counts = [int(cat_counter.get(c, 0)) for c in faults_by_catalog.keys()]
+        if counts:
+            cnt_min, cnt_max = min(counts), max(counts)
+            if cnt_min == cnt_max:
+                cnt_min = 0
+            cmap_counts = cm.linear.YlGnBu_09.scale(cnt_min, cnt_max if cnt_max > cnt_min else cnt_min + 1)
+        else:
+            cmap_counts = cm.linear.YlGnBu_09.scale(0, 1)
+
+        for catalog, feats in faults_by_catalog.items():
+            if selected_catalog != 'All' and selected_catalog != catalog:
+                continue
+
+            fc = {'type': 'FeatureCollection', 'features': feats}
+            count_for_catalog = int(cat_counter.get(catalog, 0))
+
+            def style_func(feat, cnt=count_for_catalog):
+                geom_type = feat.get('geometry', {}).get('type')
+                color = cmap_counts(cnt) if cnt is not None else '#000000'
+                weight = 2 + min(cnt, 20) * 0.2
+                return {
+                    'color': color,
+                    'weight': weight,
+                    'opacity': 0.9 if geom_type in ('LineString', 'MultiLineString') else 0.8
+                }
+
+            fg = folium.FeatureGroup(name=f"Faults catalog {catalog}", show=True)
+            geo = folium.GeoJson(
+                fc,
+                name=f"faults_{catalog}",
+                style_function=style_func,
+                tooltip=folium.GeoJsonTooltip(fields=list(feats[0].get('properties', {}).keys()) if feats and feats[0].get('properties') else None)
+            )
+            geo.add_to(fg)
+            fg.add_to(m)
+
+        if 'magnitude' in data.columns and not data['magnitude'].isna().all():
+            mag_min, mag_max = float(data['magnitude'].min()), float(data['magnitude'].max())
+        else:
+            mag_min, mag_max = 0.0, 9.0
+        cmap = cm.linear.YlOrRd_09.scale(mag_min, mag_max)
+
+        mag_bins = [
+            (0.0, 1.0, '0 < mag <= 1'),
+            (1.0, 2.0, '1 < mag <= 2'),
+            (2.0, 3.0, '2 < mag <= 3'),
+            (3.0, 4.0, '3 < mag <= 4'),
+            (4.0, 10.0, 'mag > 4')
+        ]
+        bin_groups = {}
+        for _, _, label in mag_bins:
+            fg = folium.FeatureGroup(name=label, show=True)
+            fg.add_to(m)
+            bin_groups[label] = fg
+
+        clusters = {label: MarkerCluster(name=f"Cluster {label}").add_to(bin_groups[label]) for label in bin_groups}
+
+        for _, row in data.iterrows():
+            try:
+                lat = float(row['latitude'])
+                lng = float(row['longitude'])
+            except Exception:
+                continue
+            mag = row.get('magnitude', None)
+            mag_val = float(mag) if mag not in (None, '') else None
+            color = cmap(mag_val) if mag_val is not None else '#3186cc'
+            radius = max(3, 2 + (mag_val if mag_val is not None else 0) * 2)
+            popup_html = (
+                f"<b>Magnitude:</b> {mag}<br>"
+                f"<b>Location:</b> {row.get('location', '')}<br>"
+                f"<b>City:</b> {row.get('city', '')}<br>"
+                f"<b>Time:</b> {row.get('timestamp', '')}<br>"
+                f"<b>Distance to fault (km):</b> {row.get('distance_to_fault_km', '')}<br>"
+                f"<b>Closest fault ID:</b> {row.get('catalog_id', '')}"
+            )
+
+            bin_label = None
+            if mag_val is None:
+                bin_label = list(bin_groups.keys())[0]
+            else:
+                for low, high, label in mag_bins:
+                    if low < mag_val <= high or (label == 'mag > 4' and mag_val > 4.0):
+                        bin_label = label
+                        break
+                if bin_label is None:
+                    bin_label = list(bin_groups.keys())[-1]
+
+            folium.CircleMarker(
+                location=[lat, lng],
+                radius=radius,
+                color=color,
+                fill=True,
+                fill_color=color,
+                fill_opacity=0.7,
+                popup=folium.Popup(popup_html, max_width=300)
+            ).add_to(clusters[bin_label])
+
+            if mag_val and mag_val > high_mag_threshold:
+                folium.Marker(
+                    location=[lat, lng],
+                    icon=folium.Icon(color='red', icon='exclamation-triangle', prefix='fa'),
+                    tooltip=f"High Magnitude: {mag_val}"
+                ).add_to(m)
+
+        cmap.caption = 'Earthquake magnitude'
+        cmap.add_to(m)
+        folium.LayerControl(collapsed=False).add_to(m)
+
+        return m
+
+    if return_widgets:
+        out_map = ipywidgets.Output(layout={'border': '1px solid black', 'height': '600px'})
+        catalog_options = ['All'] + sorted(list(faults_by_catalog.keys()))
+        fault_dropdown = ipywidgets.Dropdown(
+            options=catalog_options,
+            value='All',
+            description='Fault Catalog:',
+            disabled=False,
+        )
+
+        def _on_dropdown_change(change):
+            out_map.clear_output()
+            with out_map:
+                display(build_map(fault_dropdown.value))
+
+        fault_dropdown.observe(_on_dropdown_change, names='value')
+
+        out_map.clear_output()
+        with out_map:
+            display(build_map('All'))
+
+        return {
+            'map': build_map('All'),
+            'dropdown': fault_dropdown,
+            'out_widget': out_map,
+            'build_map': build_map
+        }
+
+    return build_map('All')
