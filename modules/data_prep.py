@@ -1,12 +1,16 @@
 
-
 import pandas as pd
 import re
 from math import radians, sin, cos, asin, sqrt, floor, ceil  
 from scipy.spatial.distance import cdist
 import numpy as np 
 import geojson
-from modules.config import GEOJSON_OF_FAULTS_PATH
+from datetime import datetime, timedelta
+from modules.model import EarthquakeAnalyzer
+import modules.data_prep as data_prep
+from modules.config import GEOJSON_OF_FAULTS_PATH, DATE_INTERVAL, START_MONTH, START_YEAR, END_MONTH, END_YEAR, TUPLE_COLUMNS_TO_UNPACK
+
+
 
 def extract_cities(df: pd.DataFrame) -> pd.DataFrame:
     """Extract city names from location column (text in parentheses at the end)"""
@@ -257,3 +261,32 @@ def unpack_tuple_for_most_likely_value(data, column_name):
 
     data[column_name] = data[column_name].apply(parse_tuple).apply(extract_first)
     return data
+
+def re_filter_data_by_date_interval(data: pd.DataFrame, DATE_INTERVAL=DATE_INTERVAL) -> pd.DataFrame:
+    if DATE_INTERVAL == 'LAST_2_DAYS':
+        today = datetime.now()
+        day_before = today - timedelta(days=1)
+        today = str(today)[:-16]
+        day_before = str(day_before)[:-16]
+
+        filtered_data = filter_by_time(data, start='2025-11-18', end='2025-11-19')
+        return filtered_data
+    elif DATE_INTERVAL == 'FULL_DATASET':
+        return data
+    
+
+
+def data_prep_pipeline():
+    analyzer = EarthquakeAnalyzer(download_path="./earthquake_data")
+    files = analyzer.query_period(start_year=START_YEAR, start_month=START_MONTH, end_year=END_YEAR, end_month=END_MONTH)
+    data = analyzer.extract_data(files)
+    data = data_prep.extract_cities(data)
+    features_df, filtered_features, gj = data_prep.load_and_filter_faults(data)
+    data = data_prep.match_faults_to_earthquakes(data, features_df)
+    data['timestamp_dt'] = pd.to_datetime(data['timestamp'], errors='coerce')
+    data = data_prep.calculate_distance_by_m_and_km(features_df, data)
+    for col in TUPLE_COLUMNS_TO_UNPACK:
+        data = data_prep.unpack_tuple_for_most_likely_value(data, col)
+
+    return data, filtered_features, gj
+

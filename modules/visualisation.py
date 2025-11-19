@@ -3,7 +3,10 @@ from folium.plugins import MarkerCluster
 import branca.colormap as cm
 from branca.element import Template, MacroElement
 from collections import Counter
+from datetime import datetime
 import json
+import os
+from modules.config import START_MONTH, START_YEAR, END_MONTH, END_YEAR, HIGH_MAG_THRESHOLD, MAP_MODE
 
 def generate_map(data, filtered_features, gj, high_mag_threshold):
     faults_features = filtered_features if filtered_features else (gj.get('features', []) if gj else [])
@@ -487,3 +490,25 @@ def generate_alt_map(data, filtered_features, gj, high_mag_threshold, return_wid
         }
 
     return build_map('All')
+
+
+
+def map_maker_general (data, filtered_features, gj, HIGH_MAG_THRESHOLD, MAP_MODE=MAP_MODE):
+    ct = str(datetime.now()).replace('-','_').replace(':','_')[:-10]
+    if MAP_MODE == 'SIMPLE':
+        map = generate_basic_map(data, filtered_features, gj, HIGH_MAG_THRESHOLD)
+    elif MAP_MODE == 'FAULT_DETAIL':
+        map = generate_map(data, filtered_features, gj, HIGH_MAG_THRESHOLD)
+    elif MAP_MODE == 'ALTERNATIVE':
+        map = generate_alt_map(data, filtered_features, gj, HIGH_MAG_THRESHOLD)
+    output_path = f'output_maps/{MAP_MODE}_Map_{START_MONTH}.{START_YEAR}_{END_MONTH}.{END_YEAR}_{ct}.html' 
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    map.save(output_path)
+    return output_path
+
+def map_maker(data, filtered_features, gj, HIGH_MAG_THRESHOLD=HIGH_MAG_THRESHOLD, MAP_MODE=MAP_MODE):
+    output_path = map_maker_general(data, filtered_features, gj, HIGH_MAG_THRESHOLD, MAP_MODE)
+    print(f"{MAP_MODE} map saved to: {output_path}")
+
+
+
