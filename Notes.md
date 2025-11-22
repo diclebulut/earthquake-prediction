@@ -1,7 +1,4 @@
 
-Rake, slip and dip rates: tuple to single int justification: 
-
-The tuple has the format (most-likely, min, max). In some instances where there is no estimated uncertainty in the parameter of interest, the tuple may be simply given as (most-likely,,); this is most common for the dip of purely strike-slip faults (https://github.com/GEMScienceTools/gem-global-active-faults).
 
 
 Creating virtual environment
@@ -29,7 +26,7 @@ pip install -r requirements.txt for multiple packages from a requirements file
 
 
 
-EUR_TRCS210 and ME_TRCS210 are about the same coordinates but they have different characteristics. Investigate.
+
 
 
 ## Description of the analysis problem
@@ -62,6 +59,59 @@ Zaccagnino, D., Doglioni, C. The impact of faulting complexity and type on earth
 Kiratzi, Anastasia. (2014). Mechanisms of Earthquakes in Aegean. 10.1007/978-3-642-36197-5_299-1. 
 
 
-The main objective of a machine learning model is taking all these into account, discerning previous patterns in areas, taking into account the states of faults according to previously occured earthquakes, earthquake depths, fault average_dips, average_rakes etc
-and calculating possible future occurances with probabilities and locations. 
+The main objective of a machine learning model is taking all these into account, discerning previous patterns in areas, taking into account the states of faults according to previously occured earthquakes, earthquake depths, fault average_dips, average_rakes etc and calculating possible future occurances with probabilities and locations. 
+
+
+## Questions
+- Is the existing data enough for this analysis?
+- Since faults change state every time an earthquake happens around them, what kind of pattern finding method could be utilised? 
+
+
+## Data
+- Earthquake data is taken from Boğaziçi University Kandilli Observatory and Earthquake Research Institute Regional Earthquake-Tsunami Monitoring and Evaluation Center http://www.koeri.boun.edu.tr/scripts/lst8.asp 
+- Data download script is taken from user melihme: https://gist.github.com/melihme/cb5769c8b9683ff5a1b6849c56adbdc6
+- Global faults geojson data is taken from GEM Global Active Faults Database (GEM GAF-DB) https://github.com/GEMScienceTools/gem-global-active-faults?tab=readme-ov-file
+- More research regarding faults database can be found here: Styron R, Pagani M. The GEM Global Active Faults Database. Earthquake Spectra. 2020;36(1_suppl):160-180. doi:10.1177/8755293020944182
+
+Data fields are as follows at data exploration stage:
+- timestamp: this is not parsed 
+- location: region and city 
+- magnitude: local magnitude scale ML 
+- latitude
+- longitude
+- depth: km
+- city: as extracted from location
+- closest_fault_idx: fault index
+- distance_to_fault: in degrees
+- catalog_id: Catalog name of the fault
+- slip_type: fault type (Normal, Dextral-Normal, Sinistral, Dextral, Subduction_Thrust, Sinistral-Normal)
+- fault_coordinates
+- average_dip
+- average_rake
+- lower_seis_depth
+- net_slip_rate
+- upper_seis_depth
+- distance_to_fault_m: in meters
+- distance_to_fault_km: in km
+- timestamp_dt: parsed
+
+### Removed Columns
+- catalog_name: which catalog it comes from
+- geometry_type: all LineString or None
+
+#### Not populated enough
+- epistemic_quality: populated across multiple slip types
+- activity_confidence: only populated in non Normal slip types
+- shortening_rate: only populated in Subduction_Thrust
+- strike_slip_rate: only populated in Subduction_Thrust
+
+### Data Manipulation Notes
+
+#### Rake, slip and dip rates: tuple to single int justification: 
+
+The tuple has the format (most-likely, min, max). In some instances where there is no estimated uncertainty in the parameter of interest, the tuple may be simply given as (most-likely,,); this is most common for the dip of purely strike-slip faults (https://github.com/GEMScienceTools/gem-global-active-faults).
+
+#### Fault Names
+EUR_TRCS210 and ME_TRCS210 are about the same coordinates but they have different characteristics. Investigate.
+
 

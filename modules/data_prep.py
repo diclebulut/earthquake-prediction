@@ -6,7 +6,7 @@ from scipy.spatial.distance import cdist
 import numpy as np 
 import geojson
 from datetime import datetime, timedelta
-from modules.model import EarthquakeAnalyzer
+from modules.analysis_class import EarthquakeAnalyzer
 import modules.data_prep as data_prep
 from modules.config import GEOJSON_OF_FAULTS_PATH, DATE_INTERVAL, START_MONTH, START_YEAR, END_MONTH, END_YEAR, TUPLE_COLUMNS_TO_UNPACK
 
@@ -20,7 +20,7 @@ def extract_cities(df: pd.DataFrame) -> pd.DataFrame:
             end = location.rfind(')')
             if start < end:
                 return location[start+1:end].strip()
-        return None
+        return location.strip() if location else None
     
     df['city'] = df['location'].apply(get_city)
     return df
@@ -287,6 +287,11 @@ def data_prep_pipeline():
     data = data_prep.calculate_distance_by_m_and_km(features_df, data)
     for col in TUPLE_COLUMNS_TO_UNPACK:
         data = data_prep.unpack_tuple_for_most_likely_value(data, col)
+
+    data = data.rename(columns={'coordinates': 'fault_coordinates'})
+    data = data.drop(columns=['geometry_type', 'catalog_name', 'epistemic_quality',
+                              'activity_confidence', 'shortening_rate',
+                              'strike_slip_rate'])
 
     return data, filtered_features, gj
 

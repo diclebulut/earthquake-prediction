@@ -10,4 +10,4 @@ GEOJSON_OF_FAULTS_PATH = 'faults/gem_active_faults.geojson'
 
 TUPLE_COLUMNS_TO_UNPACK = ['average_dip', 'average_rake', 'lower_seis_depth', 'net_slip_rate', 'upper_seis_depth']
 HIGH_MAG_THRESHOLD = 3.5
-MAP_MODE = 'ALTERNATIVE' #options: 'SIMPLE', 'FAULT_DETAIL', 'ALTERNATIVE'
+MAP_MODE = 'SIMPLE' #options: 'SIMPLE', 'FAULT_DETAIL', 'ALTERNATIVE'
