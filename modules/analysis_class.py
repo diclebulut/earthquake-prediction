@@ -65,6 +65,7 @@ class EarthquakeAnalyzer:
     def extract_data(self, file_paths: list) -> dict:
         """Analyze earthquake data from XML files"""
         earthquakes = []
+        skipped_count = 0
         
         for file_path in file_paths:
             try:
@@ -73,26 +74,35 @@ class EarthquakeAnalyzer:
                 
                 
                 for event in root.findall("earhquake"):
-                    magnitude = float(event.get("mag", 0))
-                    latitude = float(event.get("lat", 0))
-                    longitude = float(event.get("lng", 0))
-                    depth = float(event.get("Depth", 0))
-                    timestamp = event.get("name", "")
-                    location = event.get("lokasyon", "").strip()
-                    
-                    if magnitude > 0:
-                        earthquakes.append({
-                            "timestamp": timestamp,
-                            "location": location,
-                            "magnitude": magnitude,
-                            "latitude": latitude,
-                            "longitude": longitude,
-                            "depth": depth
-                        })
+                    try:
+                        magnitude = float(event.get("mag", 0))
+                        latitude = float(event.get("lat", 0))
+                        longitude = float(event.get("lng", 0))
+                        depth = float(event.get("Depth", 0))
+                        timestamp = event.get("name", "")
+                        location = event.get("lokasyon", "").strip()
+                        
+                        if magnitude > 0:
+                            earthquakes.append({
+                                "timestamp": timestamp,
+                                "location": location,
+                                "magnitude": magnitude,
+                                "latitude": latitude,
+                                "longitude": longitude,
+                                "depth": depth
+                            })
+                    except (ValueError, TypeError) as e:
+                        # Notify about invalid data
+                        event_info = f"mag={event.get('mag')}, lat={event.get('lat')}, lng={event.get('lng')}, depth={event.get('Depth')}"
+                        print(f"⚠ Skipped invalid data in {os.path.basename(file_path)}: {event_info}")
+                        skipped_count += 1
+                        continue
             except Exception as e:
                 print(f"Error parsing {file_path}: {e}")
         
         
         earthquakes = pd.DataFrame.from_dict(earthquakes)
         print(f"Total earthquakes: {len(earthquakes)}")
+        if skipped_count > 0:
+            print(f"⚠ Skipped {skipped_count} invalid entries")
         return earthquakes

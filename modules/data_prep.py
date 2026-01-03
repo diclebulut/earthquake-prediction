@@ -279,9 +279,12 @@ def re_filter_data_by_date_interval(data: pd.DataFrame, DATE_INTERVAL=DATE_INTER
 def data_prep_pipeline():
     analyzer = EarthquakeAnalyzer(download_path="./earthquake_data")
     files = analyzer.query_period(start_year=START_YEAR, start_month=START_MONTH, end_year=END_YEAR, end_month=END_MONTH)
+    print("Extracting data...")
     data = analyzer.extract_data(files)
     data = data_prep.extract_cities(data)
+    print("Loading and filtering faults...")
     features_df, filtered_features, gj = data_prep.load_and_filter_faults(data)
+    print("Matching faults to earthquakes and calculating distances...")
     data = data_prep.match_faults_to_earthquakes(data, features_df)
     data['timestamp_dt'] = pd.to_datetime(data['timestamp'], errors='coerce')
     data = data_prep.calculate_distance_by_m_and_km(features_df, data)
@@ -292,6 +295,6 @@ def data_prep_pipeline():
     data = data.drop(columns=['geometry_type', 'catalog_name', 'epistemic_quality',
                               'activity_confidence', 'shortening_rate',
                               'strike_slip_rate'])
-
+    print("Data Preparation Pipeline Completed.")
     return data, filtered_features, gj
 
