@@ -295,6 +295,7 @@ def data_prep_pipeline():
     data = data.drop(columns=['geometry_type', 'catalog_name', 'epistemic_quality',
                               'activity_confidence', 'shortening_rate',
                               'strike_slip_rate'])
+    data = data_prep.re_filter_data_by_date_interval(data, DATE_INTERVAL=DATE_INTERVAL)
     print("Data Preparation Pipeline Completed.")
     return data, filtered_features, gj
 

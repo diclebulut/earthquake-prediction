@@ -1,9 +1,9 @@
 
 #This dates need to be filled for any data interval 
-START_MONTH = 1
-START_YEAR = 2010
-END_MONTH = 12
-END_YEAR = 2025
+START_MONTH = 11
+START_YEAR = 2025
+END_MONTH = 1
+END_YEAR = 2026
 
 DATE_INTERVAL = 'LAST_2_DAYS' #this is solely for maps. options: 'LAST_2_DAYS', 'FULL_DATASET'
 GEOJSON_OF_FAULTS_PATH = 'faults/gem_active_faults.geojson'
