@@ -6,4 +6,7 @@ This project takes earthquake data from Turkey and runs analysis for predictions
 - Global faults geojson data is taken from GEM Global Active Faults Database (GEM GAF-DB) https://github.com/GEMScienceTools/gem-global-active-faults?tab=readme-ov-file
 - More research regarding faults database can be found here: Styron R, Pagani M. The GEM Global Active Faults Database. Earthquake Spectra. 2020;36(1_suppl):160-180. doi:10.1177/8755293020944182
 
+
+## Run Instructions
+- Analysis notebook could be ran on VSCode or equivalent by creating a .venv and installing the requirements in requirements.txt
   

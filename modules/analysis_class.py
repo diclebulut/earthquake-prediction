@@ -3,11 +3,12 @@ from datetime import datetime
 import pandas as pd
 import requests
 from xml.etree import ElementTree as ET
+from modules.config import INPUT_DIR, INPUT_FAULT_DIR
 
 
 
 class EarthquakeAnalyzer:
-    def __init__(self, download_path: str = "./fault_data"):
+    def __init__(self, download_path: str = f"./{INPUT_DIR}/{INPUT_FAULT_DIR}"):
         self.download_path = download_path
         if not os.path.exists(download_path):
             os.mkdir(download_path)

@@ -4,10 +4,11 @@ import matplotlib.colors as mcolors
 from matplotlib.colors import LinearSegmentedColormap
 import os
 from datetime import datetime
+from modules.config import OUTPUT_DIR, OUTPUT_FAULT_STATS_DIR
 
 def fault_stats_to_md_and_map(data, gj):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    folder_name = f'earthquake_stats'
+    folder_name = f'{OUTPUT_DIR}/{OUTPUT_FAULT_STATS_DIR}'
     os.makedirs(folder_name, exist_ok=True)
     fault_activity = data.groupby('catalog_id').agg({
         'magnitude': ['count', 'mean', 'max', 'std'],

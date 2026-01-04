@@ -8,7 +8,7 @@ import geojson
 from datetime import datetime, timedelta
 from modules.analysis_class import EarthquakeAnalyzer
 import modules.data_prep as data_prep
-from modules.config import GEOJSON_OF_FAULTS_PATH, DATE_INTERVAL, START_MONTH, START_YEAR, END_MONTH, END_YEAR, TUPLE_COLUMNS_TO_UNPACK
+from modules.config import GEOJSON_OF_FAULTS_JSON, START_MONTH, START_YEAR, END_MONTH, END_YEAR, TUPLE_COLUMNS_TO_UNPACK, INPUT_DIR, INPUT_EQ_DIR, INPUT_FAULT_DIR
 
 
 
@@ -70,7 +70,7 @@ def filter_features_by_bounds(features, min_lat, max_lat, min_lng, max_lng):
 
 def load_and_filter_faults(data: pd.DataFrame) -> pd.DataFrame:
 
-    with open(GEOJSON_OF_FAULTS_PATH, encoding='utf-8') as f:
+    with open(f"./{INPUT_DIR}/{INPUT_FAULT_DIR}/{GEOJSON_OF_FAULTS_JSON}", encoding='utf-8') as f:
         gj = geojson.load(f)
 
     min_lat, max_lat, min_lng, max_lng = calculate_fault_coor_limits(data)
@@ -159,7 +159,7 @@ def calculate_distance_by_m_and_km(features_df: pd.DataFrame, data: pd.DataFrame
         coords = row.get('coordinates', None)
         first = _first_coord(coords)
         if first:
-            fault_point_lookup[idx] = (first[1], first[0])  # lat, lon
+            fault_point_lookup[idx] = (first[1], first[0])  
 
     def compute_distance_to_fault_m(row):
         idx = row.get('closest_fault_idx', None)
@@ -262,22 +262,19 @@ def unpack_tuple_for_most_likely_value(data, column_name):
     data[column_name] = data[column_name].apply(parse_tuple).apply(extract_first)
     return data
 
-def re_filter_data_by_date_interval(data: pd.DataFrame, DATE_INTERVAL=DATE_INTERVAL) -> pd.DataFrame:
-    if DATE_INTERVAL == 'LAST_2_DAYS':
-        today = datetime.now()
-        day_before = today - timedelta(days=1)
-        today = str(today)[:-16]
-        day_before = str(day_before)[:-16]
+def re_filter_data_by_date_interval(data: pd.DataFrame) -> pd.DataFrame:
+    today = datetime.now()
+    day_before = today - timedelta(days=1)
+    today = str(today)[:-16]
+    day_before = str(day_before)[:-16]
 
-        filtered_data = filter_by_time(data, start='2025-11-18', end='2025-11-19')
-        return filtered_data
-    elif DATE_INTERVAL == 'FULL_DATASET':
-        return data
+    filtered_data = filter_by_time(data, start=day_before, end=today)
+    return filtered_data
     
 
 
 def data_prep_pipeline():
-    analyzer = EarthquakeAnalyzer(download_path="./earthquake_data")
+    analyzer = EarthquakeAnalyzer(download_path=f"./{INPUT_DIR}/{INPUT_EQ_DIR}")
     files = analyzer.query_period(start_year=START_YEAR, start_month=START_MONTH, end_year=END_YEAR, end_month=END_MONTH)
     print("Extracting data...")
     data = analyzer.extract_data(files)
@@ -295,7 +292,7 @@ def data_prep_pipeline():
     data = data.drop(columns=['geometry_type', 'catalog_name', 'epistemic_quality',
                               'activity_confidence', 'shortening_rate',
                               'strike_slip_rate'])
-    data = data_prep.re_filter_data_by_date_interval(data, DATE_INTERVAL=DATE_INTERVAL)
+    data_latest_eq_map = data_prep.re_filter_data_by_date_interval(data)
     print("Data Preparation Pipeline Completed.")
-    return data, filtered_features, gj
+    return data, data_latest_eq_map,filtered_features, gj
 
