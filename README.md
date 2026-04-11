@@ -8,5 +8,12 @@ This project takes earthquake data from Turkey and runs analysis for predictions
 
 
 ## Run Instructions
-- Analysis notebook could be ran on VSCode or equivalent by creating a .venv and installing the requirements in requirements.txt
+- Using Poetry (recommended):
+	1. Install Poetry: https://python-poetry.org/docs/#installation
+	2. From project root, install dependencies: `poetry install`
+	3. Start a Poetry shell: `poetry shell`
+	4. Launch VS Code or Jupyter and select the Poetry environment kernel
+
+- Legacy pip setup:
+	- Analysis notebook could be ran on VSCode or equivalent by creating a .venv and installing the requirements in requirements.txt
   
